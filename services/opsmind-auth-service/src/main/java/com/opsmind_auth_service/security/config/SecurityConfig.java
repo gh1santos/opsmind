@@ -33,12 +33,15 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        // Públicos: não precisam de JWT válido
                         .requestMatchers(
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",
+                                "/api/v1/auth/refresh",   // access token pode estar expirado
                                 "/actuator/**"
                         ).permitAll()
 
+                        // Protegidos: exigem JWT válido
                         .anyRequest().authenticated()
                 )
 

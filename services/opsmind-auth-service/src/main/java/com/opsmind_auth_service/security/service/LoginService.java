@@ -4,76 +4,93 @@ import com.opsmind_auth_service.application.dto.LoginRequest;
 import com.opsmind_auth_service.application.dto.LoginResponse;
 import com.opsmind_auth_service.application.exception.BusinessException;
 import com.opsmind_auth_service.application.usecase.LoginUseCase;
+import com.opsmind_auth_service.domain.entity.RefreshToken;
+import com.opsmind_auth_service.domain.repository.RefreshTokenRepository;
 import com.opsmind_auth_service.domain.repository.UserRepository;
-import com.opsmind_auth_service.security.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.opsmind_auth_service.domain.entity.RefreshToken;
-import com.opsmind_auth_service.domain.repository.RefreshTokenRepository;
+
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class LoginService implements LoginUseCase {
 
     private final UserRepository userRepository;
-
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
-
     private final JwtService jwtService;
+    private final LoginAttemptService loginAttemptService;
 
     @Override
     public LoginResponse execute(LoginRequest request) {
 
+        String identifier = request.getEmail();
+
+        // Brute Force: bloqueia se excedeu tentativas
+        if (loginAttemptService.isBlocked(identifier)) {
+            long minutesLeft =
+                    loginAttemptService.minutesUntilUnblock(identifier);
+            throw new BusinessException(
+                    "Account temporarily locked. Try again in "
+                            + minutesLeft + " minute(s)."
+            );
+        }
+
         var user = userRepository
                 .findByEmail(request.getEmail())
-                .orElseThrow(() ->
-                        new BusinessException("Invalid credentials")
-                );
+                .orElseThrow(() -> {
+                    loginAttemptService.registerFailure(identifier);
+                    return new BusinessException("Invalid credentials");
+                });
 
-        boolean passwordMatches =
-                passwordEncoder.matches(
-                        request.getPassword(),
-                        user.getPasswordHash()
-                );
+        boolean passwordMatches = passwordEncoder.matches(
+                request.getPassword(),
+                user.getPasswordHash()
+        );
 
         if (!passwordMatches) {
+            loginAttemptService.registerFailure(identifier);
             throw new BusinessException("Invalid credentials");
         }
 
-        String role =
-                user.getRoles()
-                        .stream()
-                        .findFirst()
-                        .orElseThrow()
-                        .getName()
-                        .name();
+        // Login bem-sucedido: limpa contador de falhas
+        loginAttemptService.registerSuccess(identifier);
 
-        String token =
-                jwtService.generateToken(
-                        user.getEmail(),
-                        role
-                );
+        String role = user.getRoles()
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("User has no role assigned"))
+                .getName()
+                .name();
 
-        String refreshTokenValue =
-                java.util.UUID.randomUUID().toString();
+        // Gera access token com tenantId no claim
+        String accessToken = jwtService.generateToken(
+                user.getEmail(),
+                role,
+                user.getTenantId()
+        );
 
-        RefreshToken refreshToken =
-                RefreshToken.builder()
-                        .token(refreshTokenValue)
-                        .userId(user.getId())
-                        .revoked(false)
-                        .createdAt(LocalDateTime.now())
-                        .expiresAt(
-                                LocalDateTime.now().plusDays(7)
-                        )
-                        .build();
+        // Gera refresh token associado ao usuário
+        String refreshTokenValue = UUID.randomUUID().toString();
+
+        RefreshToken refreshToken = RefreshToken.builder()
+                .token(refreshTokenValue)
+                .userId(user.getId())
+                .userEmail(user.getEmail())
+                .userRole(role)
+                .tenantId(user.getTenantId())
+                .revoked(false)
+                .createdAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusDays(7))
+                .build();
 
         refreshTokenRepository.save(refreshToken);
 
         return LoginResponse.builder()
-                .accessToken(token)
+                .accessToken(accessToken)
                 .refreshToken(refreshTokenValue)
                 .tokenType("Bearer")
                 .expiresIn(86400L)

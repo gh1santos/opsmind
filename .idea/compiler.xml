@@ -15,7 +15,6 @@
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
         </processorPath>
-        <module name="opsmind-api-gateway" />
         <module name="opsmind-company-service" />
         <module name="opsmind-ai-orchestrator" />
         <module name="opsmind-observability-service" />
@@ -52,6 +51,16 @@
         </processorPath>
         <module name="opsmind-auth-service" />
       </profile>
+      <profile name="Annotation profile for opsmind-api-gateway" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.38/lombok-1.18.38.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.6.3/mapstruct-processor-1.6.3.jar" />
+        </processorPath>
+        <module name="opsmind-api-gateway" />
+      </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
@@ -59,7 +68,7 @@
       <module name="opsmind" options="-parameters" />
       <module name="opsmind-ai-orchestrator" options="-parameters" />
       <module name="opsmind-ai-worker" options="-parameters" />
-      <module name="opsmind-api-gateway" options="-parameters" />
+      <module name="opsmind-api-gateway" options="" />
       <module name="opsmind-auth-service" options="" />
       <module name="opsmind-company-service" options="-parameters" />
       <module name="opsmind-config-server" options="" />

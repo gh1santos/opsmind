@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.UUID;
 
 @Service
 public class JwtService {
@@ -21,17 +22,17 @@ public class JwtService {
 
     public String generateToken(
             String email,
-            String role
+            String role,
+            UUID tenantId
     ) {
 
         Date now = new Date();
-
-        Date expirationDate =
-                new Date(now.getTime() + expiration);
+        Date expirationDate = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
                 .setSubject(email)
                 .claim("role", role)
+                .claim("tenantId", tenantId != null ? tenantId.toString() : null)
                 .setIssuedAt(now)
                 .setExpiration(expirationDate)
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)
@@ -39,26 +40,29 @@ public class JwtService {
     }
 
     public String extractUsername(String token) {
-
         return extractAllClaims(token).getSubject();
     }
 
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
+    }
+
+    public UUID extractTenantId(String token) {
+        String tenantIdStr = extractAllClaims(token)
+                .get("tenantId", String.class);
+        return tenantIdStr != null ? UUID.fromString(tenantIdStr) : null;
+    }
+
     public boolean isTokenValid(String token) {
-
         try {
-
             extractAllClaims(token);
-
             return true;
-
         } catch (Exception ex) {
-
             return false;
         }
     }
 
     private Claims extractAllClaims(String token) {
-
         return Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
                 .build()
@@ -67,13 +71,6 @@ public class JwtService {
     }
 
     private Key getSignKey() {
-
         return Keys.hmacShaKeyFor(secret.getBytes());
-    }
-
-    public String extractRole(String token) {
-
-        return extractAllClaims(token)
-                .get("role", String.class);
     }
 }

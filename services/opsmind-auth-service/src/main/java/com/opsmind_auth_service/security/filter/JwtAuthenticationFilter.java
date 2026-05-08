@@ -1,21 +1,22 @@
 package com.opsmind_auth_service.security.filter;
 
 import com.opsmind_auth_service.security.service.JwtService;
+import com.opsmind_auth_service.security.tenant.TenantContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -30,50 +31,44 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        final String authHeader =
-                request.getHeader("Authorization");
+        // Limpa o contexto de tenant da thread anterior (pool reutilizado)
+        TenantContext.clear();
 
-        if (authHeader == null ||
-                !authHeader.startsWith("Bearer ")) {
+        final String authHeader = request.getHeader("Authorization");
 
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String jwt =
-                authHeader.substring(7);
+        String jwt = authHeader.substring(7);
 
         if (!jwtService.isTokenValid(jwt)) {
-
             filterChain.doFilter(request, response);
             return;
         }
 
-        String email =
-                jwtService.extractUsername(jwt);
+        String email    = jwtService.extractUsername(jwt);
+        String role     = jwtService.extractRole(jwt);
+        UUID   tenantId = jwtService.extractTenantId(jwt);
 
-        String role =
-                jwtService.extractRole(jwt);
+        // Propaga o tenantId para o TenantContext desta thread
+        if (tenantId != null) {
+            TenantContext.setTenantId(tenantId);
+        }
 
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(
                         email,
                         null,
-                        List.of(
-                                new SimpleGrantedAuthority(
-                                        "ROLE_" + role
-                                )
-                        )
+                        List.of(new SimpleGrantedAuthority("ROLE_" + role))
                 );
 
         authToken.setDetails(
-                new WebAuthenticationDetailsSource()
-                        .buildDetails(request)
+                new WebAuthenticationDetailsSource().buildDetails(request)
         );
 
-        SecurityContextHolder
-                .getContext()
-                .setAuthentication(authToken);
+        SecurityContextHolder.getContext().setAuthentication(authToken);
 
         filterChain.doFilter(request, response);
     }

@@ -5,6 +5,7 @@
     <file url="file://$PROJECT_DIR$/services/opsmind-ai-orchestrator/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/opsmind-ai-worker/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/opsmind-api-gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-api-gateway/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/opsmind-auth-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/opsmind-auth-service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/opsmind-company-service/src/main/java" charset="UTF-8" />
