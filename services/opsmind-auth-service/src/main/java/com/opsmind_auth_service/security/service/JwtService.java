@@ -19,7 +19,10 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private Long expiration;
 
-    public String generateToken(String email) {
+    public String generateToken(
+            String email,
+            String role
+    ) {
 
         Date now = new Date();
 
@@ -28,6 +31,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .setSubject(email)
+                .claim("role", role)
                 .setIssuedAt(now)
                 .setExpiration(expirationDate)
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)
@@ -65,5 +69,11 @@ public class JwtService {
     private Key getSignKey() {
 
         return Keys.hmacShaKeyFor(secret.getBytes());
+    }
+
+    public String extractRole(String token) {
+
+        return extractAllClaims(token)
+                .get("role", String.class);
     }
 }

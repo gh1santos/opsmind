@@ -39,8 +39,19 @@ public class LoginService implements LoginUseCase {
             throw new BusinessException("Invalid credentials");
         }
 
+        String role =
+                user.getRoles()
+                        .stream()
+                        .findFirst()
+                        .orElseThrow()
+                        .getName()
+                        .name();
+
         String token =
-                jwtService.generateToken(user.getEmail());
+                jwtService.generateToken(
+                        user.getEmail(),
+                        role
+                );
 
         return LoginResponse.builder()
                 .accessToken(token)
