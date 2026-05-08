@@ -18,22 +18,6 @@ import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 
-/**
- * Filtro global — Autenticação JWT + Propagação de contexto.
- * Ordem: -90 (após CorrelationIdFilter, antes do roteamento).
- *
- * Responsabilidades:
- * 1. Verifica se o path é público (lista gateway.public-paths)
- * 2. Valida o JWT no header Authorization: Bearer <token>
- * 3. Se válido: propaga claims como headers internos para o downstream
- *    - X-User-Email    → email do usuário autenticado
- *    - X-User-Role     → role (ex: USER, ADMIN)
- *    - X-Tenant-Id     → UUID do tenant (multi-tenant)
- * 4. Se inválido ou ausente em rota protegida: retorna 401 JSON
- *
- * Os serviços downstream CONFIAM nesses headers sem revalidar o JWT.
- * Isso é seguro porque os headers são injetados pelo gateway após validação.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -60,14 +44,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         String path = exchange.getRequest().getURI().getPath();
 
-        // Paths públicos: passa sem validar JWT
         if (gatewayProperties.isPublicPath(path)) {
             log.debug("[{}] Public path — skipping JWT: {}",
                     getCorrelationId(exchange), path);
             return chain.filter(exchange);
         }
 
-        // Extrai Authorization header
         String authHeader = exchange.getRequest()
                 .getHeaders()
                 .getFirst(AUTHORIZATION_HEADER);
@@ -86,7 +68,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return respondUnauthorized(exchange, "Invalid or expired token");
         }
 
-        // Extrai claims do JWT
         String email    = jwtService.extractEmail(token);
         String role     = jwtService.extractRole(token);
         String tenantId = jwtService.extractTenantId(token);
@@ -94,8 +75,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         log.debug("[{}] JWT valid — user: {}, role: {}, tenant: {}",
                 getCorrelationId(exchange), email, role, tenantId);
 
-        // Propaga contexto ao downstream via headers internos
-        // Remove Authorization original para evitar reprocessamento nos microsserviços
         ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                 .header(USER_EMAIL_HEADER, email  != null ? email    : "")
                 .header(USER_ROLE_HEADER,  role   != null ? role     : "")
@@ -104,8 +83,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         return chain.filter(exchange.mutate().request(mutatedRequest).build());
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
 
     private Mono<Void> respondUnauthorized(ServerWebExchange exchange, String message) {
         ServerHttpResponse response = exchange.getResponse();

@@ -8,10 +8,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
-/**
- * Controlador de fallback para os CircuitBreakers das rotas do gateway.
- * Retorna resposta amigável quando um serviço downstream está indisponível.
- */
 @RestController
 @RequestMapping("/fallback")
 public class FallbackController {

@@ -94,6 +94,40 @@ spring:
                 redis-rate-limiter.requestedTokens: 1
                 key-resolver: "#{@userKeyResolver}"
 
+        # ── COMPANY SERVICE: invite accept (público — token no path) ──────────
+        - id: company-invite-accept
+          uri: ${COMPANY_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/invites/*/accept
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: company-cb
+                fallbackUri: forward:/fallback/default
+
+        # ── COMPANY SERVICE: todos os outros endpoints (JWT obrigatório) ──────
+        - id: company-service
+          uri: ${COMPANY_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/companies/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: company-cb
+                fallbackUri: forward:/fallback/default
+
         # ── HEALTH / ACTUATOR ─────────────────────────────────────────────────
         - id: gateway-actuator
           uri: http://localhost:${GATEWAY_PORT:8080}
@@ -112,6 +146,8 @@ gateway:
     - /api/v1/auth/register
     - /api/v1/auth/login
     - /api/v1/auth/refresh
+    - /api/v1/companies/plans           # pricing page — sem JWT
+    - /api/v1/invites/*/accept          # o convitado já está autenticado, mas o token é no path
     - /actuator/**
     - /fallback/**
 

@@ -17,6 +17,7 @@
 
     <!-- MICROSSERVIÇOS -->
     <modules>
+        <module>libs/opsmind-events-common</module>
         <module>services/opsmind-api-gateway</module>
         <module>services/opsmind-auth-service</module>
         <module>services/opsmind-company-service</module>

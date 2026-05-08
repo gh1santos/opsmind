@@ -11,16 +11,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
-/**
- * Filtro global — Correlation ID.
- * Ordem: -100 (primeiríssimo da cadeia).
- *
- * Comportamento:
- * - Se o request já carrega X-Correlation-Id (vindo do cliente/frontend), usa ele.
- * - Caso contrário, gera um UUID único.
- * - Propaga o ID para todos os serviços downstream via header.
- * - Adiciona o ID no response header para rastreamento no cliente.
- */
 @Slf4j
 @Component
 public class CorrelationIdFilter implements GlobalFilter, Ordered {
@@ -45,7 +35,6 @@ public class CorrelationIdFilter implements GlobalFilter, Ordered {
 
         final String finalCorrelationId = correlationId;
 
-        // Injeta o correlation ID no request enviado ao downstream
         ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                 .header(CORRELATION_ID_HEADER, finalCorrelationId)
                 .build();
@@ -54,7 +43,6 @@ public class CorrelationIdFilter implements GlobalFilter, Ordered {
                 .request(mutatedRequest)
                 .build();
 
-        // Adiciona o correlation ID no response para o cliente conseguir rastrear
         return chain.filter(mutatedExchange)
                 .then(Mono.fromRunnable(() ->
                         mutatedExchange.getResponse()

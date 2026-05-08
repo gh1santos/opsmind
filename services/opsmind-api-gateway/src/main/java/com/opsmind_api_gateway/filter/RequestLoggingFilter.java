@@ -9,15 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-/**
- * Filtro global — Structured Request/Response Logging.
- * Ordem: Ordered.LOWEST_PRECEDENCE (último da cadeia de entrada, primeiro da saída).
- *
- * Log de entrada:  --> METHOD /path [correlation-id] from IP
- * Log de saída:    <-- STATUS METHOD /path [correlation-id] Xms
- *
- * Usa o X-Correlation-Id injetado pelo CorrelationIdFilter para rastreamento.
- */
+
 @Slf4j
 @Component
 public class RequestLoggingFilter implements GlobalFilter, Ordered {

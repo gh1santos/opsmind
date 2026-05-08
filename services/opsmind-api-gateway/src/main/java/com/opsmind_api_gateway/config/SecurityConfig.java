@@ -11,15 +11,6 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-/**
- * Spring Security para stack reativa (WebFlux / Netty).
- *
- * O gateway delega a autenticação ao JwtAuthenticationFilter (GlobalFilter),
- * portanto o SecurityWebFilterChain apenas:
- *   - Desabilita CSRF (API stateless)
- *   - Configura CORS global
- *   - Permite todas as requisições (a autorização real ocorre no JwtFilter)
- */
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
@@ -38,10 +29,6 @@ public class SecurityConfig {
                 .build();
     }
 
-    /**
-     * CORS reativo. Permite origens configuráveis; em produção,
-     * substitua o wildcard pela lista de domínios reais do frontend.
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();

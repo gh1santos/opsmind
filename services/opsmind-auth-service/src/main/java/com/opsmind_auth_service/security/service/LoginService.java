@@ -1,8 +1,10 @@
 package com.opsmind_auth_service.security.service;
 
+import com.opsmind.events.auth.UserLoggedInEvent;
 import com.opsmind_auth_service.application.dto.LoginRequest;
 import com.opsmind_auth_service.application.dto.LoginResponse;
 import com.opsmind_auth_service.application.exception.BusinessException;
+import com.opsmind_auth_service.application.port.AuthEventPort;
 import com.opsmind_auth_service.application.usecase.LoginUseCase;
 import com.opsmind_auth_service.domain.entity.RefreshToken;
 import com.opsmind_auth_service.domain.repository.RefreshTokenRepository;
@@ -18,11 +20,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class LoginService implements LoginUseCase {
 
-    private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
-    private final LoginAttemptService loginAttemptService;
+    private final UserRepository          userRepository;
+    private final RefreshTokenRepository  refreshTokenRepository;
+    private final PasswordEncoder         passwordEncoder;
+    private final JwtService              jwtService;
+    private final LoginAttemptService     loginAttemptService;
+    private final AuthEventPort           authEventPort;
 
     @Override
     public LoginResponse execute(LoginRequest request) {
@@ -31,12 +34,9 @@ public class LoginService implements LoginUseCase {
 
         // Brute Force: bloqueia se excedeu tentativas
         if (loginAttemptService.isBlocked(identifier)) {
-            long minutesLeft =
-                    loginAttemptService.minutesUntilUnblock(identifier);
+            long minutesLeft = loginAttemptService.minutesUntilUnblock(identifier);
             throw new BusinessException(
-                    "Account temporarily locked. Try again in "
-                            + minutesLeft + " minute(s)."
-            );
+                    "Account temporarily locked. Try again in " + minutesLeft + " minute(s).");
         }
 
         var user = userRepository
@@ -47,9 +47,7 @@ public class LoginService implements LoginUseCase {
                 });
 
         boolean passwordMatches = passwordEncoder.matches(
-                request.getPassword(),
-                user.getPasswordHash()
-        );
+                request.getPassword(), user.getPasswordHash());
 
         if (!passwordMatches) {
             loginAttemptService.registerFailure(identifier);
@@ -67,16 +65,11 @@ public class LoginService implements LoginUseCase {
                 .name();
 
         // Gera access token com tenantId no claim
-        String accessToken = jwtService.generateToken(
-                user.getEmail(),
-                role,
-                user.getTenantId()
-        );
+        String accessToken = jwtService.generateToken(user.getEmail(), role, user.getTenantId());
 
-        // Gera refresh token associado ao usuário
+        // Gera e persiste refresh token
         String refreshTokenValue = UUID.randomUUID().toString();
-
-        RefreshToken refreshToken = RefreshToken.builder()
+        refreshTokenRepository.save(RefreshToken.builder()
                 .token(refreshTokenValue)
                 .userId(user.getId())
                 .userEmail(user.getEmail())
@@ -85,9 +78,17 @@ public class LoginService implements LoginUseCase {
                 .revoked(false)
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusDays(7))
-                .build();
+                .build());
 
-        refreshTokenRepository.save(refreshToken);
+        // Publica evento de login — IP não disponível no service (camada application)
+        // O controller pode enriquecer via header X-Forwarded-For se necessário
+        authEventPort.publish(UserLoggedInEvent.of(
+                user.getId(),
+                user.getTenantId(),
+                user.getEmail(),
+                role,
+                null  // ipAddress — enriquecido futuramente via request header
+        ));
 
         return LoginResponse.builder()
                 .accessToken(accessToken)

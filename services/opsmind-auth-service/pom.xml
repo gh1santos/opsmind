@@ -105,6 +105,25 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
+		<!-- KAFKA -->
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
+
+		<!-- FLYWAY POSTGRESQL (necessário para Flyway 10+) -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+
+		<!-- OPSMIND EVENTS COMMON -->
+		<dependency>
+			<groupId>com.opsmind</groupId>
+			<artifactId>opsmind-events-common</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+
 		<!-- TEST -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
