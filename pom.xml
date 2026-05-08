@@ -1,0 +1,133 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- IDENTIDADE DO MONOREPO -->
+    <groupId>com.opsmind</groupId>
+    <artifactId>opsmind</artifactId>
+    <version>1.0.0</version>
+
+    <packaging>pom</packaging>
+
+    <name>OpsMind AI</name>
+    <description>Enterprise AI SaaS Platform</description>
+
+    <!-- MICROSSERVIÇOS -->
+    <modules>
+        <module>services/opsmind-api-gateway</module>
+        <module>services/opsmind-auth-service</module>
+        <module>services/opsmind-company-service</module>
+        <module>services/opsmind-ai-orchestrator</module>
+        <module>services/opsmind-ai-worker</module>
+        <module>services/opsmind-notification-service</module>
+        <module>services/opsmind-observability-service</module>
+        <module>services/opsmind-discovery-service</module>
+        <module>services/opsmind-config-server</module>
+    </modules>
+
+    <!-- VERSÕES CENTRALIZADAS -->
+    <properties>
+
+        <!-- JAVA -->
+        <java.version>21</java.version>
+
+        <!-- SPRING -->
+        <spring.boot.version>3.5.0</spring.boot.version>
+        <spring.cloud.version>2025.0.0</spring.cloud.version>
+
+        <!-- LIBS -->
+        <mapstruct.version>1.6.3</mapstruct.version>
+        <lombok.version>1.18.38</lombok.version>
+
+        <!-- OBSERVABILIDADE -->
+        <opentelemetry.version>1.46.0</opentelemetry.version>
+
+        <!-- RESILIÊNCIA -->
+        <resilience4j.version>2.3.0</resilience4j.version>
+
+        <!-- ENCODING -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    </properties>
+
+    <!-- GERENCIAMENTO GLOBAL DE DEPENDÊNCIAS -->
+    <dependencyManagement>
+
+        <dependencies>
+
+            <!-- SPRING BOOT -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- SPRING CLOUD -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring.cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+
+    </dependencyManagement>
+
+    <!-- PLUGINS GLOBAIS -->
+    <build>
+
+        <pluginManagement>
+
+            <plugins>
+
+                <!-- SPRING BOOT -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                </plugin>
+
+                <!-- JAVA -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+
+                        <annotationProcessorPaths>
+
+                            <!-- LOMBOK -->
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+
+                            <!-- MAPSTRUCT -->
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+
+                        </annotationProcessorPaths>
+
+                    </configuration>
+
+                </plugin>
+
+            </plugins>
+
+        </pluginManagement>
+
+    </build>
+
+</project>

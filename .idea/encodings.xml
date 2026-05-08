@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/opsmind/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-ai-orchestrator/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-ai-worker/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-api-gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-auth-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-auth-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-company-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-config-server/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-config-server/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-discovery-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-discovery-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-notification-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/opsmind-observability-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
+  </component>
+</project>
