@@ -1,0 +1,135 @@
+server:
+  port: ${GATEWAY_PORT:8080}
+
+spring:
+  application:
+    name: opsmind-api-gateway
+
+  # ── REDIS ──────────────────────────────────────────────────────────────────
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # password: ${REDIS_PASSWORD:}   # descomente em produção
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  # ── SPRING CLOUD GATEWAY ───────────────────────────────────────────────────
+  cloud:
+    gateway:
+
+      # CORS global — permite que o browser faça chamadas ao gateway
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGINS:*}
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: false
+            maxAge: 3600
+
+      # Filtro global de dedup para evitar header duplicado em preflight
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+
+      # ── ROTAS ──────────────────────────────────────────────────────────────
+      routes:
+
+        # ── AUTH SERVICE: endpoints públicos (sem JWT) ──────────────────────
+        # Rate limit agressivo: evita brute force mesmo antes do auth-service
+        - id: auth-public
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/auth/register, /api/v1/auth/login, /api/v1/auth/refresh
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 5        # 5 req/s em regime normal
+                redis-rate-limiter.burstCapacity: 10       # pico máximo de 10 req/s
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: auth-public-cb
+                fallbackUri: forward:/fallback/auth
+
+        # ── AUTH SERVICE: endpoints protegidos (JWT obrigatório) ────────────
+        - id: auth-protected
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 30
+                redis-rate-limiter.burstCapacity: 60
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: auth-protected-cb
+                fallbackUri: forward:/fallback/auth
+
+        # ── USER SERVICE ─────────────────────────────────────────────────────
+        - id: user-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}   # no mesmo serviço por agora
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+
+        # ── HEALTH / ACTUATOR ─────────────────────────────────────────────────
+        - id: gateway-actuator
+          uri: http://localhost:${GATEWAY_PORT:8080}
+          predicates:
+            - Path=/actuator/**
+
+# ── JWT ─────────────────────────────────────────────────────────────────────
+# Deve ser o MESMO secret do auth-service para validar os tokens corretamente.
+jwt:
+  secret: ${JWT_SECRET:opsmind-super-secret-key-minimum-256-bits-for-hmac-sha256}
+
+# ── GATEWAY PROPERTIES ───────────────────────────────────────────────────────
+# Caminhos que não requerem JWT. O JwtAuthenticationFilter lê esta lista.
+gateway:
+  public-paths:
+    - /api/v1/auth/register
+    - /api/v1/auth/login
+    - /api/v1/auth/refresh
+    - /actuator/**
+    - /fallback/**
+
+# ── ACTUATOR ─────────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, gateway
+  endpoint:
+    health:
+      show-details: when-authorized
+    gateway:
+      enabled: true
+
+# ── LOGGING ──────────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.opsmind_api_gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.security: WARN
