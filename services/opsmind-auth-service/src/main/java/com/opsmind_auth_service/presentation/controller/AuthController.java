@@ -11,6 +11,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import com.opsmind_auth_service.application.dto.RefreshTokenRequest;
+import com.opsmind_auth_service.application.usecase.RefreshTokenUseCase;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -49,6 +51,23 @@ public class AuthController {
                 .success(true)
                 .data(response)
                 .message("Login successful")
+                .build();
+    }
+
+    private final RefreshTokenUseCase refreshTokenUseCase;
+
+    @PostMapping("/refresh")
+    public ApiResponse<LoginResponse> refreshToken(
+            @Valid @RequestBody RefreshTokenRequest request
+    ) {
+
+        LoginResponse response =
+                refreshTokenUseCase.execute(request);
+
+        return ApiResponse.<LoginResponse>builder()
+                .success(true)
+                .data(response)
+                .message("Token refreshed successfully")
                 .build();
     }
 }

@@ -9,6 +9,9 @@ import com.opsmind_auth_service.security.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.opsmind_auth_service.domain.entity.RefreshToken;
+import com.opsmind_auth_service.domain.repository.RefreshTokenRepository;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -53,8 +56,25 @@ public class LoginService implements LoginUseCase {
                         role
                 );
 
+        String refreshTokenValue =
+                java.util.UUID.randomUUID().toString();
+
+        RefreshToken refreshToken =
+                RefreshToken.builder()
+                        .token(refreshTokenValue)
+                        .userId(user.getId())
+                        .revoked(false)
+                        .createdAt(LocalDateTime.now())
+                        .expiresAt(
+                                LocalDateTime.now().plusDays(7)
+                        )
+                        .build();
+
+        refreshTokenRepository.save(refreshToken);
+
         return LoginResponse.builder()
                 .accessToken(token)
+                .refreshToken(refreshTokenValue)
                 .tokenType("Bearer")
                 .expiresIn(86400L)
                 .build();
